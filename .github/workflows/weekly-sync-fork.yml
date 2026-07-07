@@ -1,0 +1,34 @@
+name: Weekly Auto Sync & Snapshot
+
+on:
+  schedule:
+    # Runs at 00:00 UTC every Sunday (0 is Sunday, 1 is Monday, etc.)
+    - cron: '0 0 * * 0'
+  workflow_dispatch: # Still allows you to run it manually
+
+jobs:
+  sync-and-snapshot:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Explicitly grant permission to push branches
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Sync fork with upstream
+        run: gh repo sync $GITHUB_REPOSITORY --force
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create dated snapshot branch
+        run: |
+          # Fetch the newly synced main branch from your fork
+          git fetch origin main
+          
+          # Generate today's date in YYYY-MM-DD format 
+          TODAY=$(date +'%Y-%m-%d')
+          BRANCH_NAME="main_$TODAY"
+          
+          # Push the synced main branch to a brand new dated branch
+          git push origin origin/main:refs/heads/$BRANCH_NAME
